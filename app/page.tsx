@@ -12,7 +12,7 @@ import {
   Avatar,   
   Button,
   Stack,
-  Badge,
+  Badge,      
   Paper,
 } from "@mantine/core";
 import {
