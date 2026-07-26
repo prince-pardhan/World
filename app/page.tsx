@@ -9,12 +9,13 @@ import {
   ActionIcon,
   ScrollArea,
   Group,
-  Avatar,   
+  Avatar,
   Button,
   Stack,
-  Badge,      
   Paper,
+  Overlay,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import {
   IconPlus,
   IconSend,
@@ -24,7 +25,6 @@ import {
   IconMenu2,
   IconX,
   IconCopy,
-  IconRobot,
 } from "@tabler/icons-react";
 
 interface Message {
@@ -40,7 +40,8 @@ interface Chat {
 }
 
 export default function ChatGPTApp() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chats, setChats] = useState<Chat[]>([
     { id: "1", title: "Naya Chat", messages: [] },
   ]);
@@ -51,6 +52,15 @@ export default function ChatGPTApp() {
   const viewportRef = useRef<HTMLDivElement>(null);
 
   const activeChat = chats.find((c) => c.id === activeChatId) || chats[0];
+
+  // Desktop screen par sidebar default open rakhein
+  useEffect(() => {
+    if (!isMobile) {
+      setSidebarOpen(true);
+    } else {
+      setSidebarOpen(false);
+    }
+  }, [isMobile]);
 
   // Auto Scroll
   useEffect(() => {
@@ -72,6 +82,7 @@ export default function ChatGPTApp() {
     setActiveChatId(newChat.id);
     setInput("");
     setError("");
+    if (isMobile) setSidebarOpen(false);
   };
 
   const deleteChat = (id: string, e: React.MouseEvent) => {
@@ -83,6 +94,11 @@ export default function ChatGPTApp() {
         : [{ id: Date.now().toString(), title: "Naya Chat", messages: [] }];
     setChats(fallback);
     if (activeChatId === id) setActiveChatId(fallback[0].id);
+  };
+
+  const handleSelectChat = (id: string) => {
+    setActiveChatId(id);
+    if (isMobile) setSidebarOpen(false);
   };
 
   const sendMessage = async () => {
@@ -102,7 +118,7 @@ export default function ChatGPTApp() {
         if (chat.id !== activeChatId) return chat;
         const title =
           chat.messages.length === 0
-            ? input.trim().slice(0, 30) + (input.length > 30 ? "..." : "")
+            ? input.trim().slice(0, 25) + (input.length > 25 ? "..." : "")
             : chat.title;
         return { ...chat, title, messages: updatedMessages };
       })
@@ -113,7 +129,7 @@ export default function ChatGPTApp() {
     setError("");
 
     try {
-      // Internal Secure Backend API call
+      // Backend API call
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -152,37 +168,58 @@ export default function ChatGPTApp() {
   };
 
   return (
-    <Flex h="100vh" bg="#1e1e1e" style={{ overflow: "hidden" }}>
+    <Flex h="100vh" bg="#1e1e1e" style={{ overflow: "hidden", position: "relative" }}>
+      {/* Mobile Backdrop Overlay */}
+      {isMobile && sidebarOpen && (
+        <Overlay
+          color="#000"
+          backgroundOpacity={0.6}
+          style={{ zIndex: 99 }}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <Box
-        w={sidebarOpen ? 260 : 0}
         style={{
+          position: isMobile ? "fixed" : "relative",
+          top: 0,
+          left: 0,
+          height: "100%",
+          width: sidebarOpen ? (isMobile ? "280px" : "260px") : "0px",
+          zIndex: 100,
           background: "#141414",
           borderRight: "1px solid rgba(255,255,255,0.08)",
-          transition: "width 0.2s ease",
+          transition: "width 0.25s ease, transform 0.25s ease",
           overflow: "hidden",
         }}
       >
-        <Flex direction="column" h="100%" w={260} p="md">
-          <Button
-            leftSection={<IconPlus size={16} />}
-            variant="outline"
-            color="gray"
-            onClick={createNewChat}
-            mb="md"
-            fullWidth
-          >
-            New Chat
-          </Button>
+        <Flex direction="column" h="100%" w={isMobile ? 280 : 260} p="md">
+          <Group justify="space-between" mb="md">
+            <Button
+              leftSection={<IconPlus size={16} />}
+              variant="outline"
+              color="gray"
+              onClick={createNewChat}
+              style={{ flex: 1 }}
+            >
+              New Chat
+            </Button>
+            {isMobile && (
+              <ActionIcon variant="subtle" color="gray" onClick={() => setSidebarOpen(false)}>
+                <IconX size={18} />
+              </ActionIcon>
+            )}
+          </Group>
 
           <ScrollArea style={{ flex: 1 }}>
-            <Stack gap={4}>
+            <Stack gap={6}>
               {chats.map((chat) => (
                 <Paper
                   key={chat.id}
                   p="xs"
                   radius="md"
-                  onClick={() => setActiveChatId(chat.id)}
+                  onClick={() => handleSelectChat(chat.id)}
                   style={{
                     cursor: "pointer",
                     background:
@@ -192,7 +229,7 @@ export default function ChatGPTApp() {
                   }}
                 >
                   <Group justify="space-between" wrap="nowrap">
-                    <Group gap={8} style={{ overflow: "hidden" }}>
+                    <Group gap={8} style={{ overflow: "hidden", flex: 1 }}>
                       <IconMessage size={16} color="#aaa" />
                       <Text size="sm" c="#eee" truncate>
                         {chat.title}
@@ -215,61 +252,93 @@ export default function ChatGPTApp() {
       </Box>
 
       {/* Main Chat Area */}
-      <Flex direction="column" style={{ flex: 1 }}>
-        {/* Header */}
-        <Group h={56} px="md" justify="space-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+      <Flex direction="column" style={{ flex: 1, width: "100%", overflow: "hidden" }}>
+        {/* Top Header */}
+        <Group
+          h={56}
+          px="md"
+          justify="space-between"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+        >
           <Group gap="xs">
-            <ActionIcon variant="subtle" color="gray" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {sidebarOpen ? <IconX size={18} /> : <IconMenu2 size={18} />}
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen && !isMobile ? <IconX size={18} /> : <IconMenu2 size={18} />}
             </ActionIcon>
-            <Text fw={600} c="#fff">
-              OpenAI Assistant
+            <Text fw={600} size="sm" c="#eee" truncate >
+              {activeChat.title}
             </Text>
           </Group>
 
-          <Badge variant="light" color="teal" leftSection={<IconRobot size={12} />}>
-            GPT-4o-mini
-          </Badge>
+          <ActionIcon
+            variant="light"
+            color="teal"
+            radius="xl"
+            onClick={createNewChat}
+            hiddenFrom="xs"
+          >
+            <IconPlus size={16} />
+          </ActionIcon>
         </Group>
 
-        {/* Messages */}
+        {/* Messages Container */}
         <ScrollArea style={{ flex: 1 }} viewportRef={viewportRef}>
-          <Box maw={750} mx="auto" p="md" py={30}>
+          <Box maw={750} mx="auto" p={isMobile ? "xs" : "md"} py={20}>
             {activeChat.messages.length === 0 ? (
-              <Flex direction="column" align="center" justify="center" mih={300} gap="sm">
-                <Avatar size={50} radius="xl" color="teal">
-                  <IconSparkles size={24} />
+              <Flex
+                direction="column"
+                align="center"
+                justify="center"
+                mih={300}
+                gap="sm"
+                px="sm"
+                ta="center"
+              >
+                <Avatar size={isMobile ? 40 : 50} radius="xl" color="teal">
+                  <IconSparkles size={isMobile ? 20 : 24} />
                 </Avatar>
-                <Text fw={600} size="lg" c="#fff">
-                  Aapka OpenAI Assistant Ready Hai
+                <Text fw={600} size={isMobile ? "md" : "lg"} c="#fff">
+                 Ai
                 </Text>
                 <Text size="sm" c="dimmed">
-                  Kuch bhi puchho, ye turant reply karega.
+                  
                 </Text>
               </Flex>
             ) : (
-              <Stack gap="lg">
+              <Stack gap="md">
                 {activeChat.messages.map((msg) => (
                   <Flex
                     key={msg.id}
                     justify={msg.role === "user" ? "flex-end" : "flex-start"}
-                    gap="sm"
+                    gap={isMobile ? "xs" : "sm"}
                   >
                     {msg.role === "assistant" && (
-                      <Avatar radius="xl" color="teal" size={32}>
-                        <IconSparkles size={16} />
+                      <Avatar
+                        radius="xl"
+                        color="teal"
+                        size={isMobile ? 28 : 32}
+                        mt={2}
+                      >
+                        <IconSparkles size={isMobile ? 14 : 16} />
                       </Avatar>
                     )}
                     <Paper
-                      p="sm"
+                      p={isMobile ? "xs" : "sm"}
                       radius="lg"
-                      maw="80%"
+                      maw={isMobile ? "88%" : "80%"}
                       style={{
-                        background: msg.role === "user" ? "#2b2b2b" : "#1e293b",
+                        background:
+                          msg.role === "user" ? "#2b2b2b" : "#1e293b",
                         color: "#fff",
                       }}
                     >
-                      <Text size="sm" style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                      <Text
+                        size={isMobile ? "xs" : "sm"}
+                        style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}
+                      >
                         {msg.content}
                       </Text>
                       {msg.role === "assistant" && (
@@ -278,7 +347,9 @@ export default function ChatGPTApp() {
                           variant="subtle"
                           color="gray"
                           mt={4}
-                          onClick={() => navigator.clipboard.writeText(msg.content)}
+                          onClick={() =>
+                            navigator.clipboard.writeText(msg.content)
+                          }
                         >
                           <IconCopy size={12} />
                         </ActionIcon>
@@ -288,7 +359,7 @@ export default function ChatGPTApp() {
                 ))}
 
                 {isTyping && (
-                  <Text size="sm" c="dimmed">
+                  <Text size="xs" c="dimmed" ml={isMobile ? 36 : 44}>
                     AI type kar raha hai...
                   </Text>
                 )}
@@ -298,20 +369,27 @@ export default function ChatGPTApp() {
         </ScrollArea>
 
         {/* Input Area */}
-        <Box p="md">
+        <Box p={isMobile ? "xs" : "md"}>
           <Box maw={750} mx="auto">
             {error && (
               <Text size="xs" c="red" mb={4} ta="center">
                 {error}
               </Text>
             )}
-            <Paper p={6} radius="xl" style={{ background: "#2b2b2b", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <Group gap="xs" wrap="nowrap">
+            <Paper
+              p={4}
+              radius="xl"
+              style={{
+                background: "#2b2b2b",
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}
+            >
+              <Group gap="xs" wrap="nowrap" align="flex-end">
                 <Textarea
                   placeholder="Ask anything..."
                   value={input}
                   onChange={(e) => setInput(e.currentTarget.value)}
-                  onKeyDown={(e) => {
+                  onKeyDown={(e: any) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       sendMessage();
@@ -319,25 +397,29 @@ export default function ChatGPTApp() {
                   }}
                   autosize
                   minRows={1}
-                  maxRows={5}
+                  maxRows={4}
                   style={{ flex: 1 }}
                   styles={{
                     input: {
                       background: "transparent",
                       border: "none",
                       color: "#fff",
+                      paddingTop: "8px",
+                      paddingBottom: "8px",
+                      fontSize: isMobile ? "14px" : "15px",
                     },
                   }}
                 />
                 <ActionIcon
-                  size={36}
+                  size={34}
                   radius="xl"
                   color="teal"
                   variant="filled"
                   disabled={!input.trim() || isTyping}
                   onClick={sendMessage}
+                  mb={2}
                 >
-                  <IconSend size={18} />
+                  <IconSend size={16} />
                 </ActionIcon>
               </Group>
             </Paper>
