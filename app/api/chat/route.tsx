@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "GROQ_API_KEY missing in .env.local" },
         { status: 500 }
-      );
+      );     
     }
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {

@@ -9,7 +9,7 @@ import {
   ActionIcon,
   ScrollArea,
   Group,
-  Avatar,
+  Avatar,   
   Button,
   Stack,
   Badge,
