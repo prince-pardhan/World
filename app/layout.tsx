@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: " World places",
-  description: "turist guide for world places",
+  title: "ai",
+  description: "A simple AI app built with Next.js, Mantine, and OpenAI API.",
    icons: {
     icon: [
       {

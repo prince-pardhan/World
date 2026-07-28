@@ -22,6 +22,9 @@ import {
   PasswordInput,
   Menu,
   Divider,
+  SimpleGrid,
+  Card,
+  ThemeIcon,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import {
@@ -44,6 +47,10 @@ import {
   IconLogout,
   IconUserPlus,
   IconLogin,
+  IconCrown,
+  IconCheck,
+  IconQrcode,
+  IconCreditCard,
 } from "@tabler/icons-react";
 
 interface Message {
@@ -64,6 +71,7 @@ interface Chat {
 interface UserProfile {
   name: string;
   email: string;
+  plan?: "free" | "basic" | "pro";
 }
 
 // Helper: Convert File to Base64 String
@@ -112,10 +120,14 @@ export default function ChatGPTApp() {
   const [modalImage, setModalImage] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
-  // Authentication States
+  // Authentication & Subscription States
   const [user, setUser] = useState<UserProfile | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<{ name: string; price: string } | null>(null);
+
   const [authForm, setAuthForm] = useState({
     name: "",
     email: "",
@@ -231,11 +243,12 @@ export default function ChatGPTApp() {
         setAuthError("Passwords match nahi kar rahe hain.");
         return;
       }
-      userProfile = { name: authForm.name, email: authForm.email };
+      userProfile = { name: authForm.name, email: authForm.email, plan: "free" };
     } else {
       userProfile = {
         name: authForm.name || authForm.email.split("@")[0],
         email: authForm.email,
+        plan: "free",
       };
     }
 
@@ -255,6 +268,12 @@ export default function ChatGPTApp() {
     setAuthMode(mode);
     setAuthError("");
     setAuthModalOpen(true);
+  };
+
+  const handleSelectPlan = (planName: string, price: string) => {
+    setSelectedPlan({ name: planName, price });
+    setPricingModalOpen(false);
+    setPaymentModalOpen(true);
   };
 
   const sendMessage = async () => {
@@ -289,7 +308,7 @@ export default function ChatGPTApp() {
         const title =
           chat.messages.length === 0
             ? (currentInput || "Uploaded Image").slice(0, 25) +
-            (currentInput.length > 25 ? "..." : "")
+              (currentInput.length > 25 ? "..." : "")
             : chat.title;
         return { ...chat, title, messages: updatedMessages };
       })
@@ -391,13 +410,13 @@ export default function ChatGPTApp() {
         centered
         radius="md"
         styles={{
-          content: { background: "#0f172a", border: "1px solid rgba(0, 0, 0, 0.2)", color: "#f8fafc" },
+          content: { background: "#0f172a", border: "1px solid rgba(255, 255, 255, 0.1)", color: "#f8fafc" },
           header: { background: "#0f172a", color: "#f8fafc" },
         }}
         title={
           <Group gap="xs">
             <IconMoonStars color="#2dd4bf" size={20} />
-            <Text fw={600}>{authMode === "signup" ? "Account " : "Login "}</Text>
+            <Text fw={600}>{authMode === "signup" ? "Account Create Karein" : "Login Karein"}</Text>
           </Group>
         }
       >
@@ -438,7 +457,6 @@ export default function ChatGPTApp() {
               label="Password"
               placeholder="Password..."
               leftSection={<IconLock size={16} color="white" />}
-              // leftSection={<IconLock size={16} />}
               value={authForm.password}
               onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
               required
@@ -462,7 +480,6 @@ export default function ChatGPTApp() {
             </Button>
 
             <Text size="xs" ta="center" c="gray.5" mt="xs">
-              {authMode === "signup" ? "" : ""}{" "}
               <Text
                 span
                 c="teal.4"
@@ -472,11 +489,212 @@ export default function ChatGPTApp() {
                   setAuthMode(authMode === "signup" ? "login" : "signup");
                 }}
               >
-                {authMode === "signup" ? "Login " : "Sign Up "}
+                {authMode === "signup" ? "Pehle se account hai? Login karein" : "Naya account banayein"}
               </Text>
             </Text>
           </Stack>
         </form>
+      </Modal>
+
+      {/* Paid Version / Pricing Modal */}
+      <Modal
+        opened={pricingModalOpen}
+        onClose={() => setPricingModalOpen(false)}
+        centered
+        size="lg"
+        radius="md"
+        styles={{
+          content: { background: "#0f172a", border: "1px solid rgba(255, 255, 255, 0.1)", color: "#f8fafc" },
+          header: { background: "#0f172a", color: "#f8fafc" },
+        }}
+        title={
+          <Group gap="xs">
+            <IconCrown color="#f59e0b" size={22} />
+            <Text fw={700} size="lg">Upgrade to Pro Version</Text>
+          </Group>
+        }
+      >
+        <Stack gap="md">
+          {/* <Text size="sm" c="gray.4">
+            Apne workflow ko supercharge karein! Apne zaroorat ke mutabiq best plan select karein:
+          </Text> */}
+
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+            {/* Basic Plan */}
+            <Card
+              shadow="sm"
+              padding="lg"
+              radius="md"
+              style={{
+                background: "#1e293b",
+                border: "1px solid rgba(20, 184, 166, 0.3)",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
+              <Stack gap="xs">
+                <Badge color="teal" variant="light" size="lg" style={{ width: "fit-content" }}>
+                  BASIC PLAN
+                </Badge>
+                <Group align="flex-end" gap={4}>
+                  <Text size="28px" fw={800} c="#f8fafc">₹5,000</Text>
+                  <Text size="xs" c="gray.4" mb={4}>/ month</Text>
+                </Group>
+                <Divider my="xs" color="rgba(255, 255, 255, 0.08)" />
+                <Stack gap={8}>
+                  <Group gap={8}>
+                    <ThemeIcon color="teal" size={18} radius="xl"><IconCheck size={12} /></ThemeIcon>
+                    <Text size="xs" c="gray.3">Unlimited Text Messaging</Text>
+                  </Group>
+                  <Group gap={8}>
+                    <ThemeIcon color="teal" size={18} radius="xl"><IconCheck size={12} /></ThemeIcon>
+                    <Text size="xs" c="gray.3">Standard Speed Responses</Text>
+                  </Group>
+                  <Group gap={8}>
+                    <ThemeIcon color="teal" size={18} radius="xl"><IconCheck size={12} /></ThemeIcon>
+                    <Text size="xs" c="gray.3">Chat History Persistence</Text>
+                  </Group>
+                </Stack>
+              </Stack>
+              <Button
+                color="teal"
+                fullWidth
+                mt="lg"
+                onClick={() => handleSelectPlan("Basic Plan", "₹5,000")}
+              >
+                Choose Basic (₹5,000)
+              </Button>
+            </Card>
+
+            {/* Pro Plan */}
+            <Card
+              shadow="sm"
+              padding="lg"
+              radius="md"
+              style={{
+                background: "linear-gradient(145deg, #1e293b, #0f172a)",
+                border: "2px solid #f59e0b",
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
+              <Badge color="yellow" variant="filled" style={{ position: "absolute", top: 12, right: 12 }}>
+                POPULAR
+              </Badge>
+              <Stack gap="xs">
+                <Badge color="yellow" variant="light" size="lg" style={{ width: "fit-content" }}>
+                  PRO PLAN
+                </Badge>
+                <Group align="flex-end" gap={4}>
+                  <Text size="28px" fw={800} c="#f8fafc">₹10,000</Text>
+                  <Text size="xs" c="gray.4" mb={4}>/ month</Text>
+                </Group>
+                <Divider my="xs" color="rgba(255, 255, 255, 0.08)" />
+                <Stack gap={8}>
+                  <Group gap={8}>
+                    <ThemeIcon color="yellow" size={18} radius="xl"><IconCheck size={12} /></ThemeIcon>
+                    <Text size="xs" c="gray.3">Sabhi Basic Features</Text>
+                  </Group>
+                  <Group gap={8}>
+                    <ThemeIcon color="yellow" size={18} radius="xl"><IconCheck size={12} /></ThemeIcon>
+                    <Text size="xs" c="gray.3">AI Image Generation Mode</Text>
+                  </Group>
+                  <Group gap={8}>
+                    <ThemeIcon color="yellow" size={18} radius="xl"><IconCheck size={12} /></ThemeIcon>
+                    <Text size="xs" c="gray.3">Image Vision & Uploads Analysis</Text>
+                  </Group>
+                  <Group gap={8}>
+                    <ThemeIcon color="yellow" size={18} radius="xl"><IconCheck size={12} /></ThemeIcon>
+                    <Text size="xs" c="gray.3">Priority High-Speed Server Access</Text>
+                  </Group>
+                </Stack>
+              </Stack>
+              <Button
+                color="yellow"
+                c="dark"
+                fullWidth
+                mt="lg"
+                leftSection={<IconCrown size={16} />}
+                onClick={() => handleSelectPlan("Pro Plan", "₹10,000")}
+              >
+                Choose Pro (₹10,000)
+              </Button>
+            </Card>
+          </SimpleGrid>
+        </Stack>
+      </Modal>
+
+      {/* Online Payment Modal */}
+      <Modal
+        opened={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        centered
+        radius="md"
+        styles={{
+          content: { background: "#0f172a", border: "1px solid rgba(255, 255, 255, 0.1)", color: "#f8fafc" },
+          header: { background: "#0f172a", color: "#f8fafc" },
+        }}
+        title={
+          <Group gap="xs">
+            <IconCreditCard color="#2dd4bf" size={20} />
+            <Text fw={600}>Online Payment Gateway</Text>
+          </Group>
+        }
+      >
+        {selectedPlan && (
+          <Stack align="center" gap="md">
+            <Paper p="sm" bg="#1e293b" radius="md" style={{ width: "100%", textAlign: "center" }}>
+              <Text size="xs" c="gray.4">Selected Plan:</Text>
+              <Text fw={700} size="lg" c="teal.4">{selectedPlan.name}</Text>
+              <Text fw={800} size="xl" c="#f8fafc">{selectedPlan.price}</Text>
+            </Paper>
+
+            <Text size="xs" c="gray.4" ta="center">
+              Niche diye gaye UPI ID par payment karein ya QR Code scan karein:
+            </Text>
+
+            <Paper p="md" bg="#fff" radius="md" style={{ textAlign: "center" }}>
+              <IconQrcode size={140} color="#000" />
+              <Text size="xs" fw={700} c="#000" mt={4}>
+                UPI ID: 8290400325@fam
+              </Text>
+            </Paper>
+
+            <Paper p="xs" bg="#1e293b" radius="md" style={{ width: "100%" }}>
+              <Group justify="space-between">
+                <Text size="xs" c="gray.3">UPI Handle:</Text>
+                <Badge color="teal" variant="light" size="lg">
+                  8290400325@fam
+                </Badge>
+              </Group>
+            </Paper>
+
+            <Button
+              color="teal"
+              fullWidth
+              component="a"
+              href={`upi://pay?pa=8290400325@fam&pn=ChatGPTApp&am=${selectedPlan.price.replace(/[^0-9]/g, '')}&cu=INR`}
+              target="_blank"
+            >
+              Pay via UPI App Directly
+            </Button>
+
+            <Button
+              variant="subtle"
+              color="gray"
+              size="xs"
+              onClick={() => {
+                setPaymentModalOpen(false);
+                alert("Payment Verification Request Received! Aapka plan jald hi activate kar diya jayega.");
+              }}
+            >
+              I have completed the payment
+            </Button>
+          </Stack>
+        )}
       </Modal>
 
       {/* Sidebar */}
@@ -495,7 +713,7 @@ export default function ChatGPTApp() {
         }}
       >
         <Flex direction="column" h="100%" w={isMobile ? 280 : 260} p="md">
-          <Group justify="space-between" mb="md">
+          <Group justify="space-between" mb="xs">
             <Button
               leftSection={<IconPlus size={16} />}
               variant="outline"
@@ -507,10 +725,21 @@ export default function ChatGPTApp() {
             </Button>
             {isMobile && (
               <ActionIcon variant="subtle" color="gray" onClick={() => setSidebarOpen(false)}>
-                <IconX size={18}  color="#fffdfd" />
+                <IconX size={18} color="#fffdfd" />
               </ActionIcon>
             )}
           </Group>
+
+          {/* Upgrade Button in Sidebar */}
+          {/* <Button
+            leftSection={<IconCrown size={16} color="#f59e0b" />}
+            variant="light"
+            color="yellow"
+            mb="md"
+            onClick={() => setPricingModalOpen(true)}
+          >
+            Upgrade Plans (₹5k - ₹10k)
+          </Button> */}
 
           <ScrollArea style={{ flex: 1 }}>
             <Stack gap={6}>
@@ -629,6 +858,15 @@ export default function ChatGPTApp() {
           </Group>
 
           <Group gap="xs">
+            <Button
+              variant="light"
+              color="yellow"
+              size="xs"
+              leftSection={<IconCrown size={14} />}
+              onClick={() => setPricingModalOpen(true)}
+            >
+              Plans
+            </Button>
             {user ? (
               <Menu shadow="md" width={200} position="bottom-end">
                 <Menu.Target>
@@ -638,6 +876,12 @@ export default function ChatGPTApp() {
                 </Menu.Target>
                 <Menu.Dropdown bg="#0f172a" style={{ borderColor: "rgba(255,255,255,0.1)", color: "#f8fafc" }}>
                   <Menu.Label c="gray.5">{user.email}</Menu.Label>
+                  <Menu.Item style={{ color: "#f8fafc" }}
+                    leftSection={<IconCrown size={14} color="#f59e0b" />}
+                    onClick={() => setPricingModalOpen(true)}
+                  >
+                    Upgrade Plan
+                  </Menu.Item>
                   <Menu.Item
                     color="red"
                     leftSection={<IconLogout size={14} />}
@@ -769,7 +1013,7 @@ export default function ChatGPTApp() {
                             navigator.clipboard.writeText(msg.content)
                           }
                         >
-                          <IconCopy size={12}  color="white"/>
+                          <IconCopy size={12} color="white"/>
                         </ActionIcon>
                       )}
                     </Paper>
@@ -854,7 +1098,7 @@ export default function ChatGPTApp() {
                       ml={2}
                       title="Upload Image"
                     >
-                      <IconPaperclip size={18}  color="white"/>
+                      <IconPaperclip size={18} color="white"/>
                     </ActionIcon>
                   )}
                 </FileButton>
@@ -868,14 +1112,14 @@ export default function ChatGPTApp() {
                   mb={2}
                   title="Image Generate Mode"
                 >
-                  <IconPhoto size={18}  color="white"/>
+                  <IconPhoto size={18} color="white"/>
                 </ActionIcon>
 
                 <Textarea
                   placeholder={
                     isImageMode
-                      ? "type ..."
-                      : "type..."
+                      ? "Describe image to generate..."
+                      : "Type a message..."
                   }
                   value={input}
                   onChange={(e) => setInput(e.currentTarget.value)}
