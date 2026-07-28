@@ -100,7 +100,7 @@ export default function ChatGPTApp() {
         }
       }
     }
-    return [{ id: "1", title: "Naya Chat", messages: [] }];
+    return [{ id: "1", title: "New Chat", messages: [] }];
   });
 
   const [activeChatId, setActiveChatId] = useState<string>(() => {
@@ -138,7 +138,7 @@ export default function ChatGPTApp() {
 
   const activeChat =
     chats.find((c) => c.id === activeChatId) ||
-    chats[0] || { id: "1", title: "Naya Chat", messages: [] };
+    chats[0] || { id: "1", title: "New Chat", messages: [] };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -195,7 +195,7 @@ export default function ChatGPTApp() {
   const createNewChat = () => {
     const newChat: Chat = {
       id: Date.now().toString(),
-      title: "Naya Chat",
+      title: "New Chat",
       messages: [],
     };
     setChats((prevChats) => [newChat, ...prevChats]);
