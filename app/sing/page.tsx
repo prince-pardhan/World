@@ -799,7 +799,7 @@ export default function ChatGPTApp() {
             </Paper>
           ) : (
             <Stack gap={6}>
-              <Button
+              {/* <Button
                 variant="outline"
                 color="teal"
                 size="xs"
@@ -818,7 +818,7 @@ export default function ChatGPTApp() {
                 onClick={() => openAuth("signup")}
               >
                 Sign Up
-              </Button>
+              </Button> */}
             </Stack>
           )}
         </Flex>
